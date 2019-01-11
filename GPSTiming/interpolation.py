@@ -2,8 +2,6 @@ from astropy.table import Table
 from scipy.optimize import curve_fit
 import numpy as np
 
-__all__ = ["interpolate_boardtimes"]
-
 
 def interpolate_boardtimes(table: Table):
     """Interpolate boardtimes with GPS triggers.
