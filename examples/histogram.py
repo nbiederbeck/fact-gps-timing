@@ -16,15 +16,13 @@ def plot_histogram():
     )
     table = Table(fits_file[1].data)
     gps_triggers = table["TriggerType"] == 1
+
     unix_time_utc = read_with_row_mask(table["UnixTimeUTC"], gps_triggers).astype(
         "uint64"
     )
     timestamp = np.array(
         unix_time_utc[:, 0] * 1_000_000 + unix_time_utc[:, 1], dtype="datetime64[us]"
     )
-    # board_time = read_with_row_mask(f["events/BoardTime"], gps_triggers).astype(
-    #     "uint32"
-    # )
     full_second = (timestamp + np.timedelta64(500, "ms")).astype("datetime64[s]")
 
     fig, ax = plt.subplots()
