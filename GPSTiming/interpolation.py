@@ -27,14 +27,14 @@ def interpolate_boardtimes(table: Table):
     if np.sum(gps_triggers_mask) == 0:
         raise NoGPSTriggers
 
-    # Read UnixTimeUTC and BoardTime as 32bit and 63bit unsigned integers
+    # Read UnixTimeUTC and BoardTime as 32bit unsigned integers
     unixtimeutc = table["UnixTimeUTC"].astype("uint32")
     timestamps = np.array(
         unixtimeutc[:, 0] * 1e6 + unixtimeutc[:, 1], dtype="datetime64[us]"
     )
     full_seconds = (timestamps + np.timedelta64(500, "ms")).astype("datetime64[s]")
     full_seconds_int = full_seconds.astype("uint32")
-    boardtimes = table["BoardTime"].astype("uint64")
+    boardtimes = table["BoardTime"].astype("uint32")
 
     # Zero-correct board times (start at 0 for first event)
     boardtimes_corr = boardtimes - boardtimes[0, :]
