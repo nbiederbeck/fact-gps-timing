@@ -1,6 +1,7 @@
 from astropy.table import Table
 from scipy.optimize import curve_fit
 import numpy as np
+from .exceptions import NoGPSTriggers
 
 
 def interpolate_boardtimes(table: Table):
@@ -21,14 +22,17 @@ def interpolate_boardtimes(table: Table):
     -------
     astropy.table.Table
     """
+    # Get mask where event was triggered by GPS
+    gps_triggers_mask = table["TriggerType"] == 1
+    if np.sum(gps_triggers_mask) == 0:
+        raise NoGPSTriggers
+
     # Read UnixTimeUTC and BoardTime as 32bit and 63bit unsigned integers
     unixtimeutc = table["UnixTimeUTC"].astype("uint32")
     timestamps = np.array(
         unixtimeutc[:, 0] * 1e6 + unixtimeutc[:, 1], dtype="datetime64[us]"
     )
-    full_seconds = (timestamps + np.timedelta64(500, "ms")).astype(
-        "datetime64[s]"
-    )
+    full_seconds = (timestamps + np.timedelta64(500, "ms")).astype("datetime64[s]")
     full_seconds_int = full_seconds.astype("uint32")
     boardtimes = table["BoardTime"].astype("uint64")
 
@@ -37,9 +41,6 @@ def interpolate_boardtimes(table: Table):
 
     # Calculate mean boardtimes from 40 counters
     mean_boardtimes_corr = boardtimes_corr.mean(axis=1)
-
-    # Get mask where event was triggered by GPS
-    gps_triggers_mask = table["TriggerType"] == 1
 
     # Define and fit linear function
     def _linear_interpolation(x, m, b):
@@ -52,8 +53,6 @@ def interpolate_boardtimes(table: Table):
     )
 
     # Add new column to data table and return it
-    table["InterpolatedUnixTime"] = _linear_interpolation(
-        mean_boardtimes_corr, *par
-    )
+    table["InterpolatedUnixTime"] = _linear_interpolation(mean_boardtimes_corr, *par)
 
     return table
