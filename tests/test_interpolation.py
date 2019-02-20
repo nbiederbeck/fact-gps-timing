@@ -10,3 +10,10 @@ def test_time_differences_greater_zero(path: str):
     fits_file.close()
     table = interpolate_boardtimes(table)
     assert diff(table["InterpolatedUnixTime"]).all() > 0
+
+def main():
+    path = '/net/big-tank/POOL/projects/fact/gps_timestamp_data/2014/01/01/20140101_073_v1.1.1_gps_timestamp_data_timestamps.fits'
+    test_time_differences_greater_zero(path)
+
+if __name__ == "__main__":
+    main()
