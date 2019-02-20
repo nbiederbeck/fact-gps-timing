@@ -1,10 +1,9 @@
 from astropy.table import Table
-from scipy.optimize import curve_fit
 import numpy as np
 from .exceptions import NoGPSTriggers
 
 
-def interpolate_boardtimes(table: Table):
+def interpolate_boardtimes(table: Table, trigger_gps_value: int = 1):
     """Interpolate boardtimes with GPS triggers.
 
     Read UnixTimeUTC and BoardTime as unsigned integers,
@@ -13,6 +12,10 @@ def interpolate_boardtimes(table: Table):
     Run a linear regression on the GPS triggered timestamps,
     to interpolate the boardtimes.
     Add the interpolated boardtimes to the table and return it.
+
+    Avoid BoardCounter integer overflow problems by subtracting
+    the first element and thus re-underflowing the problematic
+    values which solves this problem easily.
 
     Parameters
     ----------
@@ -23,7 +26,7 @@ def interpolate_boardtimes(table: Table):
     astropy.table.Table
     """
     # Get mask where event was triggered by GPS
-    gps_triggers_mask = table["TriggerType"] == 1
+    gps_triggers_mask = table["TriggerType"] == trigger_gps_value
     if np.sum(gps_triggers_mask) == 0:
         raise NoGPSTriggers
 
@@ -42,17 +45,14 @@ def interpolate_boardtimes(table: Table):
     # Calculate mean boardtimes from 40 counters
     mean_boardtimes_corr = boardtimes_corr.mean(axis=1)
 
-    # Define and fit linear function
-    def _linear_interpolation(x, m, b):
-        return x * m + b
-
-    par, cov = curve_fit(
-        _linear_interpolation,
+    # Linear interpolation (y = x * m + b)
+    m, b = np.polyfit(
         mean_boardtimes_corr[gps_triggers_mask],
         full_seconds_int[gps_triggers_mask],
+        deg=1,
     )
 
     # Add new column to data table and return it
-    table["InterpolatedUnixTime"] = _linear_interpolation(mean_boardtimes_corr, *par)
+    table["InterpolatedUnixTime"] = mean_boardtimes_corr * m + b
 
     return table
